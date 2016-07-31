@@ -24,7 +24,73 @@ use \Psr\Http\Message\UriInterface as UriInterface;
  */
 class Uri implements UriInterface
 {
-    
+    /**
+     * @var string
+    */
+    private $scheme = '';
+
+    /**
+     * @var int|null
+    */
+    private $port;
+
+    /**
+     * @var string
+    */
+    private $host;
+
+    /**
+     * @var string
+    */
+    private $userInfo = '';
+
+    /** 
+     * @var string 
+    */
+    private $query = '';
+
+
+    /**
+     * @var string|null
+     */
+    private $uriString;
+
+
+
+    // ctr
+    /**
+     * @param string $uri
+    */
+    public function __construct($uri = '')
+    {
+         if ($uri != '') {
+            $parts = parse_url($uri);
+        
+            if ($parts === false) {
+                throw new \InvalidArgumentException("Error parsing URI: $uri");
+            }
+
+            $this->buildParts($parts);
+            $this->uriString = $uri;
+
+        }
+    }
+
+    private function buildParts(array $parts)
+    {
+        $this->scheme = $this->filterScheme($parts['scheme']);
+        $this->userInfo = isset($parts['user']) ? $parts['user'] : '';
+        $this->host = $parts['host'];
+        $this->port = isset($parts['port']) ? $parts['port'] : null;
+        $this->path = $parts['path'];
+        $this->query = isset($parts['query']) ? $parts['query']: '';
+    }
+
+    private function filterScheme($scheme)
+    {
+        return strtolower($scheme);
+    }
+
     /**
      * Retrieve the scheme component of the URI.
      *
@@ -41,7 +107,7 @@ class Uri implements UriInterface
      */
     public function getScheme()
     {
-
+        return $this->scheme;
     }
 
     /**
@@ -64,7 +130,16 @@ class Uri implements UriInterface
      */
     public function getAuthority()
     {
+        $auth = $this->host;
 
+        if ($this->userInfo !== '') {
+            $auth = $this->userInfo . '@' . $auth;
+        }
+
+        if ($this->port) {
+            $auth .= ':' . $this->port;
+        }
+        return $auth;
     }
 
     /**
@@ -84,7 +159,7 @@ class Uri implements UriInterface
      */
     public function getUserInfo()
     {
-
+        return $this->userInfo;
     }
 
     /**
@@ -100,7 +175,7 @@ class Uri implements UriInterface
      */
     public function getHost()
     {
-
+        return $this->host;
     }
 
     /**
@@ -120,7 +195,7 @@ class Uri implements UriInterface
      */
     public function getPort()
     {
-
+        return $this->port;
     }
 
     /**
@@ -150,7 +225,7 @@ class Uri implements UriInterface
      */
     public function getPath()
     {
-
+        return $this->path;
     }
 
     /**
@@ -175,7 +250,7 @@ class Uri implements UriInterface
      */
     public function getQuery()
     {
-
+        return $this->query;
     }
 
     /**
@@ -196,7 +271,7 @@ class Uri implements UriInterface
      */
     public function getFragment()
     {
-
+        return $this->fragment;
     }
 
     /**
@@ -369,7 +444,7 @@ class Uri implements UriInterface
      */
     public function __toString()
     {
-        
+        return $this->uriString;
     }
 
 }

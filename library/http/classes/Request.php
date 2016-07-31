@@ -28,7 +28,46 @@ use \pillr\library\http\Message         as  Message;
  */
 class Request extends Message implements RequestInterface
 {
+    /** 
+     * @var string 
+    */
+    private $method;
 
+    /**
+     * @var null|string 
+    */
+    private $requestTarget;
+
+    /** 
+     * @var null|UriInterface 
+    */
+    private $uri;
+
+    /**
+     * @param string                               $method  HTTP method
+     * @param string|UriInterface                  $uri     URI
+     * @param array                                $headers Request headers
+     * @param string|null|resource|StreamInterface $body    Request body
+     * @param string                               $version Protocol version
+     */
+    public function __construct($version = '1.1', $method, $uri, array $headers = [], $body = null)
+    {
+        if (!($uri instanceof UriInterface)) {
+            $uri = new Uri($uri);
+        }
+
+        $this->method = strtoupper($method);
+        $this->uri = $uri;
+        $this->protocol = $version;
+
+        if (!$this->hasHeader('Host')) {
+            $this->updateHost();
+        }
+
+        if ($body !== '' && $body !== null) {
+            $this->stream = stream_for($body);
+        }
+    }
 
     /**
      * Retrieves the message's request target.
@@ -48,7 +87,21 @@ class Request extends Message implements RequestInterface
      */
     public function getRequestTarget()
     {
+        if ($this->requestTarget !== null) {
+            return $this->requestTarget;
+        }
+        $target = $this->uri->getScheme() . '://';
+        $target .= $this->uri->getHost();
+        $target .= $this->uri->getPath();
 
+        if ($target == '') {
+            $target = '/';
+        }
+
+        if ($this->uri->getQuery() != '') {
+            $target .= '?' . $this->uri->getQuery();
+        }
+        return $target;
     }
 
     /**
@@ -70,7 +123,10 @@ class Request extends Message implements RequestInterface
      */
     public function withRequestTarget($requestTarget)
     {
-
+        $res = clone $this;
+        $res->uri = $requestTarget;
+        $res->requestTarget = null;
+        return $res;
     }
 
     /**
@@ -80,7 +136,7 @@ class Request extends Message implements RequestInterface
      */
     public function getMethod()
     {
-
+        return $this->method;
     }
 
     /**
@@ -100,7 +156,9 @@ class Request extends Message implements RequestInterface
      */
     public function withMethod($method)
     {
-
+        $res = clone $this;
+        $res->method = $method;
+        return $res;
     }
 
     /**
@@ -114,7 +172,7 @@ class Request extends Message implements RequestInterface
      */
     public function getUri()
     {
-
+        return $this->uri;
     }
 
     /**
@@ -149,8 +207,39 @@ class Request extends Message implements RequestInterface
      */
     public function withUri(UriInterface $uri, $preserveHost = false)
     {
+        $res = clone $this;
+        $res->uri = $uri;
 
+        if (!$preserveHost) {
+            $res->updateHost();
+        }
+
+        return $res;
     }
 
+    //helper function
+    private function updateHost()
+    {
+        $host = $this->uri->getHost();
 
+        if ($host == '') {
+            return;
+        }
+
+        $port = $this->uri->getPort();
+
+        if ($port !== null) {
+            $host .= ':' . $port;
+        }
+
+        if (isset($this->headerNames['host'])) {
+            $header = $this->headerNames['host'];
+        } else {
+            $header = 'Host';
+            $this->headerNames['host'] = 'Host';
+        }
+
+        $this->headers = [$header => [$host]] + $this->headers;
+
+    }
 }

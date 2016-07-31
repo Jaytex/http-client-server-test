@@ -23,6 +23,37 @@ use \pillr\library\http\Message         as  Message;
  */
 class Response extends Message implements ResponseInterface
 {
+
+     private static $phrases = [
+        200 => 'OK',
+        404 => 'Not Found'
+    ];
+
+    /** 
+     * @var string 
+    */
+    private $reasonPhrase = '';
+
+    /**
+     *  @var int 
+    */
+    private $statusCode = 200;
+
+    public function __construct($version = '1.1', $status = 200, $reason = null, array $headers = [], $body = null) 
+    {
+        $this->statusCode = (int) $status;
+        if ($body !== '' && $body !== null) {
+            $this->body = $body;
+        }
+
+        $this->setHeaders($headers);
+        if ($reason == '' && isset(self::$phrases[$this->statusCode])) {
+            $this->reasonPhrase = self::$phrases[$this->statusCode];
+        } else {
+            $this->reasonPhrase = (string) $reason;
+        }
+        $this->protocol = $version;
+    }
     /**
      * Gets the response status code.
      *
@@ -33,7 +64,7 @@ class Response extends Message implements ResponseInterface
      */
     public function getStatusCode()
     {
-
+        return $this->statusCode;
     }
 
     /**
@@ -58,7 +89,15 @@ class Response extends Message implements ResponseInterface
      */
     public function withStatus($code, $reasonPhrase = '')
     {
+        $res = clone $this;
+        $res->statusCode = (int) $code;
 
+        if ($reasonPhrase == '' && isset($this->phrases[$res->statusCode])) {
+            $reasonPhrase = $this->phrases[$res->statusCode];
+        }
+
+        $res->reasonPhrase = $reasonPhrase;
+        return $res;
     }
 
     /**
@@ -76,6 +115,6 @@ class Response extends Message implements ResponseInterface
      */
     public function getReasonPhrase()
     {
-
+        return $this->reasonPhrase;
     }
 }
